@@ -31,29 +31,8 @@ as CSS custom properties that change value at each breakpoint:
   --grid-columns: 1;   /* sm: 1, md: 2, lg: 4, xl: 5 */
   --grid-gap: 1rem;    /* sm: 1rem, md: 1.25rem, lg/xl: 1.5rem */
   --container-padding: 1rem; /* sm: 1rem, md: 1.5rem, lg: 2rem */
-  --container-max-width: 100%;  /* sm: 100%, md: 720px, lg: 960px, xl: 1200px */
 }
 ```
-
-### Edge Cases — CSS Custom Properties
-
-- **Viewport exactly at 768px:** The `min-width: 768px` media query activates
-  (md breakpoint). `--grid-columns` becomes 2. The `max-width: 767px` query
-  does NOT apply at exactly 768px, so there is no overlap.
-- **Viewport exactly at 1024px:** `min-width: 1024px` activates (lg breakpoint).
-  `--grid-columns` becomes 4. The md query also matches at 1024px+ but the lg
-  query appears later in the cascade, so its values win.
-- **Viewport between breakpoints (e.g., 800px):** The nearest `min-width`
-  query that is satisfied applies. At 800px, `min-width: 768px` is the closest
-  match; `min-width: 1024px` does not yet match.
-- **Using `var(--token, fallback)`:** CSS custom properties that are undefined
-  at a given breakpoint fall back to their default cascade value (inherited
-  from the `:root` block). Consumers should always provide a sensible `:root`
-  default so the property works even before any media query activates.
-- **High-contrast / reduced-motion:** These theme variants do NOT override
-  responsive CSS custom properties. Responsive properties like `--grid-columns`
-  still respond to viewport changes. The theme variants only affect color,
-  animation, and border tokens (see `styles/theme.css`).
 
 ## Hooks
 
@@ -185,9 +164,9 @@ Legend: ✅ migrated, ⏳ not yet migrated (backward-compatible, future work)
 
 | Hook                    | File                                      | Key assertions                                 |
 |-------------------------|-------------------------------------------|------------------------------------------------|
-| `useMediaQuery`         | `hooks/__tests__/useMediaQuery.test.ts`   | Initial match (true/false), deterministic first render, change listener, SSR safety (no window), dynamic query change, rapid changes (20 in a row), cleanup on unmount, bidirectional transitions (match→no-match→match), multiple independent instances with different queries |
-| `useResponsiveBreakpoint` | `hooks/__tests__/useResponsiveBreakpoint.test.ts` | All 4 breakpoint states (sm/md/lg/xl), `isLargeDesktop`, backward-compat `isDesktop`, deterministic rerender, exact boundary values (768px, 1024px, 1280px), window resize simulation (mobile→desktop transition) |
-| `useResponsiveToken`    | `hooks/__tests__/useResponsiveToken.test.ts` | Exact match, fallback chain (including xl→lg→md→sm→default), determinism, empty map edge case, null values treated as defined (not skipped), invalid breakpoint keys ignored (xs, 2xl), changing tokenMap reference triggers re-resolution, undefined values skipped in fallback |
+| `useMediaQuery`         | `hooks/__tests__/useMediaQuery.test.ts`   | Initial match (true/false), deterministic first render, change listener, SSR safety, dynamic query change, rapid changes, cleanup on unmount |
+| `useResponsiveBreakpoint` | `hooks/__tests__/useResponsiveBreakpoint.test.ts` | All 4 breakpoint states (sm/md/lg/xl), `isLargeDesktop`, backward-compat `isDesktop`, deterministic rerender |
+| `useResponsiveToken`    | `hooks/__tests__/useResponsiveToken.test.ts` | Exact match, fallback chain (including xl→lg→md→sm→default), determinism, empty map edge case |
 | `useReducedMotion`      | Same as breakpoint test                   | Default false, respects `prefers-reduced-motion` |
 | `usePrefersDarkMode`    | Same as breakpoint test                   | Default false, respects `prefers-color-scheme` |
 
