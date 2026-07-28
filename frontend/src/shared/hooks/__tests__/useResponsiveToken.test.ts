@@ -96,4 +96,132 @@ describe('useResponsiveToken', () => {
     const { result: result2 } = renderHook(() => useResponsiveToken(tokens, 'z'))
     expect(result2.current).toBe('x')
   })
+
+  it('resolves xl-specific token at large desktop breakpoint', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        if (query === '(min-width: 1280px)') return mockMatchMedia(true)
+        if (query === '(min-width: 1024px)') return mockMatchMedia(true)
+        return mockMatchMedia(false)
+      }),
+    )
+    const tokens = { sm: 1, md: 2, lg: 3, xl: 5 }
+    const { result } = renderHook(() => useResponsiveToken(tokens, 1))
+    expect(result.current).toBe(5)
+  })
+
+  it('falls back from xl to lg when xl token is not defined', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        if (query === '(min-width: 1280px)') return mockMatchMedia(true)
+        if (query === '(min-width: 1024px)') return mockMatchMedia(true)
+        return mockMatchMedia(false)
+      }),
+    )
+    const tokens = { sm: 1, md: 2, lg: 4 }
+    const { result } = renderHook(() => useResponsiveToken(tokens, 1))
+    expect(result.current).toBe(4)
+  })
+
+  it('falls back through the full chain xl → lg → md → sm → default', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        if (query === '(min-width: 1280px)') return mockMatchMedia(true)
+        if (query === '(min-width: 1024px)') return mockMatchMedia(true)
+        return mockMatchMedia(false)
+      }),
+    )
+    const tokens = { sm: 100 }
+    const { result } = renderHook(() => useResponsiveToken(tokens, 999))
+    expect(result.current).toBe(100)
+  })
+
+  it('returns defaultValue when token map is empty even at xl', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        if (query === '(min-width: 1280px)') return mockMatchMedia(true)
+        if (query === '(min-width: 1024px)') return mockMatchMedia(true)
+        return mockMatchMedia(false)
+      }),
+    )
+    const { result } = renderHook(() => useResponsiveToken({}, 'fallback'))
+    expect(result.current).toBe('fallback')
+  })
+
+  it('treats null as a defined value (does not skip null in fallback chain)', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        if (query === '(max-width: 767px)') return mockMatchMedia(true)
+        return mockMatchMedia(false)
+      }),
+    )
+    const tokens: any = { sm: null, md: 'tablet-value' }
+    const { result } = renderHook(() => useResponsiveToken(tokens, 'fallback'))
+    expect(result.current).toBeNull()
+  })
+
+  it('prefers an exact lg match over a null md when at lg breakpoint', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        if (query === '(min-width: 1024px)') return mockMatchMedia(true)
+        return mockMatchMedia(false)
+      }),
+    )
+    const tokens: any = { sm: 'should-not-reach', md: null, lg: 'desktop-value' }
+    const { result } = renderHook(() => useResponsiveToken(tokens, 'fallback'))
+    expect(result.current).toBe('desktop-value')
+  })
+
+  it('ignores invalid breakpoint keys (e.g., "xs", "2xl") and falls back', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        if (query === '(min-width: 1024px)') return mockMatchMedia(true)
+        return mockMatchMedia(false)
+      }),
+    )
+    const tokens: any = { xs: 'extra-small', sm: 'mobile-value', '2xl': 'extra-large' }
+    const { result } = renderHook(() => useResponsiveToken(tokens, 'fallback'))
+    expect(result.current).toBe('mobile-value')
+  })
+
+  it('memoizes correctly: changing tokenMap reference but same values returns cached result', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        if (query === '(max-width: 767px)') return mockMatchMedia(true)
+        return mockMatchMedia(false)
+      }),
+    )
+    const { result, rerender } = renderHook(
+      ({ map }: { map: Record<string, string> }) => useResponsiveToken(map, 'fallback'),
+      { initialProps: { map: { sm: 'a', md: 'b' } } },
+    )
+    expect(result.current).toBe('a')
+
+    rerender({ map: { sm: 'a', md: 'b' } })
+    expect(result.current).toBe('a')
+
+    rerender({ map: { sm: 'x', md: 'y' } })
+    expect(result.current).toBe('x')
+  })
+
+  it('treats undefined values in tokenMap as missing for fallback purposes', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        if (query === '(min-width: 768px) and (max-width: 1023px)') return mockMatchMedia(true)
+        return mockMatchMedia(false)
+      }),
+    )
+    const tokens = { sm: 'mobile', md: undefined, lg: 'desktop' }
+    const { result } = renderHook(() => useResponsiveToken(tokens, 'fallback'))
+    expect(result.current).toBe('mobile')
+  })
 })
