@@ -43,7 +43,22 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Check Vercel deploy prerequisites
+        id: vercel-check
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID_WEBSITE: ${{ secrets.VERCEL_PROJECT_ID_WEBSITE }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID_WEBSITE" ]; then
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping website deployment because required Vercel secrets are unavailable."
+          else
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy Website to Vercel
+        if: steps.vercel-check.outputs.can_deploy == 'true'
         uses: BetaHuhn/deploy-to-vercel-action@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,7 +83,22 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Check Vercel deploy prerequisites
+        id: vercel-check
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID_FRONTEND: ${{ secrets.VERCEL_PROJECT_ID_FRONTEND }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID_FRONTEND" ]; then
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping frontend deployment because required Vercel secrets are unavailable."
+          else
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy Frontend to Vercel
+        if: steps.vercel-check.outputs.can_deploy == 'true'
         uses: BetaHuhn/deploy-to-vercel-action@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
